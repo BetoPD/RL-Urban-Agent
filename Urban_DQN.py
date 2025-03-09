@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3 import DQN
 from stable_baselines3.common.env_checker import check_env
-from Urban_env2 import City
+from Urban_env import City
 
 # Bandera para decidir si cargar el modelo preentrenado o entrenar uno nuevo
 load_model = True  # Cambia a False para entrenar un modelo nuevo
