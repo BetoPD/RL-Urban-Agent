@@ -43,24 +43,6 @@ class City(gym.Env):
         return 0 <= x < self._size and 0 <= y < self._size
     
     def _get_neighbor(self, x, y):
-        # directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-        # neighbors = [(x + dx, y + dy) for dx, dy in directions]
-        # valid_neighbors = [pos for pos in neighbors if self._is_in_bounds(*pos) and self._city[pos] == self.EMPTY]
-        # if valid_neighbors and self._city[x, y] == self.STREET:
-        #     idx = np.random.choice(len(valid_neighbors))
-        #     return valid_neighbors[idx]
-        # else:
-        #     return None
-        # get random neighbor where the grid is empty
-
-        # empty_positions = np.where(self._city == self.EMPTY)
-
-        # if empty_positions[0].size > 0:
-        #     idx = np.random.choice(empty_positions[0].size)
-        #     return (empty_positions[0][idx], empty_positions[1][idx])
-        # else:
-        #     return None
-
         valid_positions = []
         # Iteramos sobre todas las posiciones de la cuadrícula
         for i in range(self._size):
@@ -97,10 +79,6 @@ class City(gym.Env):
         
         x, y = self._agent_location
 
-        # return {
-        #     "position": self._agent_location,
-        #     "neighbors": np.array(neighbors_state)
-        # }
         return np.array([x, y] + neighbors_state, dtype=np.float32)
     
     def _get_neighbors(self, x, y):
@@ -196,8 +174,9 @@ class City(gym.Env):
 
     def plot(self):
         plt.imshow(self._city, cmap='viridis', interpolation='nearest')
-        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='purple', markersize=10, label='Street'),
-                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='House')],
+        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Street'),
+                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='House'),
+                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='purple', markersize=10, label='Empty')],
                     loc='upper left')
         plt.show()
     

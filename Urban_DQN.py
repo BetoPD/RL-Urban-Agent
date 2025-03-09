@@ -29,7 +29,7 @@ else:
         exploration_final_eps=0.05     # ε final estabilizado en 5% de acciones aleatorias
     )
     # Entrenar el agente durante 100,000 timesteps
-    model.learn(total_timesteps=10000)
+    model.learn(total_timesteps=1000000)
     # Guardar el modelo entrenado
     model.save("dqn_city_model")
     print("Modelo entrenado y guardado como 'dqn_city_model'.")
