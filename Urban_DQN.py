@@ -1,6 +1,3 @@
-import gymnasium as gym
-import numpy as np
-import matplotlib.pyplot as plt
 from stable_baselines3 import DQN
 from stable_baselines3.common.env_checker import check_env
 from Urban_env import City
@@ -29,7 +26,7 @@ else:
         exploration_final_eps=0.05     # ε final estabilizado en 5% de acciones aleatorias
     )
     # Entrenar el agente durante 100,000 timesteps
-    model.learn(total_timesteps=1000000)
+    model.learn(total_timesteps=100000)
     # Guardar el modelo entrenado
     model.save("dqn_city_model")
     print("Modelo entrenado y guardado como 'dqn_city_model'.")

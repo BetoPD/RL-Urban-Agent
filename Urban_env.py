@@ -168,7 +168,7 @@ class City(gym.Env):
         # what color is wich building
         plt.colorbar()
         plt.draw()
-        plt.pause(0.01)
+        plt.pause(0.001)
 
         print(self._city)
 
