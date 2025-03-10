@@ -2,184 +2,88 @@ import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+
 class City(gym.Env):
-    def __init__(self, size = 5):
+    def __init__(self, size=10):
         super().__init__()
-        # size of the grid
         self._size = size
         self.EMPTY = 0  
         self.STREET = 1
-        self.HOUSE = 2  
+        self.BUILDINGS = {"A": 2, "B": 3, "E": 4, "G": 5, "H": 6, "K": 7, "M": 8, "F": 9}
+
         self._streets_build = 0
-        self._houses_build = 0
+        self._buildings_build = {key: 0 for key in self.BUILDINGS.keys()}
 
-        # Gymnasium libarary
+        # Compatibility matrix
+        self.COMPATIBILITY_MATRIX = {
+            "A": {"A": 5, "B": 3, "E": 4, "G": 4, "H": 1, "K": 4, "M": 4, "L": 5, "F": 2},
+            "B": {"A": 3, "B": 5, "E": 3, "G": 3, "H": 4, "K": 4, "M": 1, "L": 5, "F": 1},
+            "E": {"A": 4, "B": 3, "E": 5, "G": 2, "H": 2, "K": 1, "M": 1, "L": 5, "F": 3},
+            "G": {"A": 4, "B": 3, "E": 2, "G": 5, "H": 3, "K": 4, "M": 1, "L": 5, "F": 5},
+            "H": {"A": 1, "B": 4, "E": 2, "G": 3, "H": 5, "K": 4, "M": 3, "L": 5, "F": 2},
+            "K": {"A": 4, "B": 4, "E": 1, "G": 4, "H": 4, "K": 5, "M": 1, "L": 5, "F": 2},
+            "M": {"A": 4, "B": 1, "E": 1, "G": 1, "H": 3, "K": 1, "M": 5, "L": 5, "F": 1},
+            "L": {"A": 5, "B": 5, "E": 5, "G": 5, "H": 5, "K": 5, "M": 5, "L": 5, "F": 5},
+            "F": {"A": 2, "B": 1, "E": 3, "G": 5, "H": 2, "K": 2, "M": 1, "L": 5, "F": 5}
+        }
 
-        # Agent Initial Location
-        # self._agent_location = np.array([size // 2, size // 2], dtype=np.int32)
-        # random agent location
-        self._agent_location = np.array([random.randint(0, self._size - 1), random.randint(0, self._size - 1)], dtype=np.int32)
-
-        # Observations
-        # self.observation_space = gym.spaces.Dict({
-        #     "position": gym.spaces.Box(low=0, high=self._size-1, shape=(2,), dtype=np.int32),
-        #     "neighbors": gym.spaces.Box(low=-1, high=self.HOUSE, shape=(8,), dtype=np.int32)
-        # })
+        # Observation and action spaces
         self.observation_space = gym.spaces.Box(
-            low=np.array([0, 0] + [-1]*8, dtype=np.float32),
-            high=np.array([self._size - 1, self._size - 1] + [2]*8, dtype=np.float32),
-            dtype=np.float32
+            low=0, high=max(self.BUILDINGS.values()), shape=(size, size), dtype=np.int32
         )
+        self.action_space = gym.spaces.Discrete(9)  # 0 = road, 1-8 = buildings
 
-
-        
-        # Actions
-        self.action_space = gym.spaces.Discrete(2)
-
-        # city layout represented in a 2D-matrix
         self._city = np.full((self._size, self._size), self.EMPTY, dtype=np.int32)
+        self._agent_location = (random.randint(0, self._size - 1), random.randint(0, self._size - 1))
 
-    def _is_in_bounds(self, x, y):
-        return 0 <= x < self._size and 0 <= y < self._size
-    
-    def _get_neighbor(self, x, y):
-        valid_positions = []
-        # Iteramos sobre todas las posiciones de la cuadrícula
-        for i in range(self._size):
-            for j in range(self._size):
-                # Vecinos Von Neumann: arriba, abajo, izquierda y derecha
-                neighbors = [(i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)]
-                # Verificamos si alguno de estos vecinos es una calle
-                for ni, nj in neighbors:
-                    if self._is_in_bounds(ni, nj) and (self._city[ni, nj] == self.STREET) and self._city[i, j] == self.EMPTY:
-                        valid_positions.append((i, j))
-                        break  # Se encontró al menos un vecino calle, no es necesario seguir revisando
-        # Si se encontraron posiciones válidas, se elige una al azar
-        if valid_positions:
-            return random.choice(valid_positions)
-        else:
-            return None
+    def _distance(self, pos1, pos2):
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
-    def _get_obs(self):
-        directions = [(-1, -1), (-1, 0), (-1, 1),
-                      (0, -1),           (0, 1),
-                      (1, -1),  (1, 0),  (1, 1)]
+    def _get_reward(self, x, y, building_type):
+        reward = 0
+        grid_size = self._size
 
-        neighbors_state = []
+        for (bx, by), value in np.ndenumerate(self._city):
+            if value in self.BUILDINGS.values():
+                building_label = [k for k, v in self.BUILDINGS.items() if v == value][0]
+                distance = self._distance((x, y), (bx, by))
+                reward += self.COMPATIBILITY_MATRIX[building_type][building_label] * (grid_size - distance)
 
-        for dx, dy in directions:
-            x, y = self._agent_location 
-            x += dx
-            y += dy
-
-            if (self._is_in_bounds(x, y)):
-                neighbors_state.append(self._city[x, y])
-            else:
-                neighbors_state.append(-1)
-        
-        x, y = self._agent_location
-
-        return np.array([x, y] + neighbors_state, dtype=np.float32)
-    
-    def _get_neighbors(self, x, y):
-        directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-        neighbors = [(x + dx, y + dy) for dx, dy in directions]
-        valid_neighbors = [pos for pos in neighbors if self._is_in_bounds(*pos)]
-        return valid_neighbors
-    
-        x, y = self._agent_location
-
-        visited = set()
-
-        stack = [(x, y)]
-
-        while len(stack) > 0:
-            current = stack.pop()
-            if current not in visited:
-                visited.add(current)
-                neighbors = self._get_neighbors(*current)
-                for neighbor in neighbors:
-                    # only visit streets
-                    if self._city[neighbor] != self.STREET:
-                        continue
-                    if neighbor not in visited:
-                        stack.append(neighbor)
-        
-        return len(visited) / self._streets_build
+        return reward
 
     def step(self, action):
-        # Validate the action
-        if action not in [0, 1]:
-            raise ValueError(f"Action must be 0 or 1, got {action}")
-
-        # Get current agent location
         x, y = self._agent_location
 
-        # Apply the action: build a house or street
-        if action == 1:
-            self._city[x, y] = self.HOUSE
-            self._houses_build += 1
-        else:
+        if action == 0:
             self._city[x, y] = self.STREET
             self._streets_build += 1
+        else:
+            building_label = list(self.BUILDINGS.keys())[action - 1]
+            self._city[x, y] = self.BUILDINGS[building_label]
+            self._buildings_build[building_label] += 1
 
-        # Attempt to move to a new position
-        neighbor = self._get_neighbor(x, y)
-        if neighbor is not None:
-            self._agent_location = neighbor
+        reward = self._get_reward(x, y, building_label if action != 0 else "L")
+
+        neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+        valid_neighbors = [pos for pos in neighbors if 0 <= pos[0] < self._size and 0 <= pos[1] < self._size]
+
+        if valid_neighbors:
+            self._agent_location = random.choice(valid_neighbors)
             done = False
         else:
             done = True
 
-        # Compute the reward
-        base_reward = 0.09 if action == 1 else 0
-        is_fully_filled = (self._houses_build + self._streets_build == self._size * self._size)
-        reward = base_reward
-        if done and not is_fully_filled:
-            number_of_empty_cells = np.sum(self._city == self.EMPTY)
-            reward -= 10 * number_of_empty_cells
-
-        # Return the standard Gymnasium tuple: observation, reward, terminated, truncated, info
-        return self._get_obs(), reward, done, False, {}
+        return self._city.copy(), reward, done, False, {}
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self._city = np.full((self._size, self._size), self.EMPTY, dtype=np.int32)
-        self._houses_build = 0
+        self._city.fill(self.EMPTY)
         self._streets_build = 0
-        
-        # Place an initial street
-        street_x = random.randint(0, self._size - 1)
-        street_y = random.randint(0, self._size - 1)
-        self._city[street_x, street_y] = self.STREET
-        self._streets_build = 1
-        
-        # Start agent at an adjacent empty cell
-        neighbors = [(street_x - 1, street_y), (street_x + 1, street_y), 
-                     (street_x, street_y - 1), (street_x, street_y + 1)]
-        valid_neighbors = [pos for pos in neighbors if self._is_in_bounds(*pos) and self._city[pos] == self.EMPTY]
-        self._agent_location = random.choice(valid_neighbors) if valid_neighbors else (street_x, street_y)
-        
-        return self._get_obs(), {}
-    
+        self._buildings_build = {key: 0 for key in self.BUILDINGS.keys()}
+        self._agent_location = (random.randint(0, self._size - 1), random.randint(0, self._size - 1))
+        return self._city.copy(), {}
+
     def render(self):
-        plt.clf()
-        plt.imshow(self._city, cmap='viridis')
-        # what color is wich building
-        plt.colorbar()
-        plt.draw()
-        plt.pause(0.001)
-
-        print(self._city)
-
-    def plot(self):
         plt.imshow(self._city, cmap='viridis', interpolation='nearest')
-        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Street'),
-                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='House'),
-                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='purple', markersize=10, label='Empty')],
-                    loc='upper left')
+        plt.colorbar()
         plt.show()
-    
-
-
-
