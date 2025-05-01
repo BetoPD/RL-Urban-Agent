@@ -42,6 +42,7 @@ class RewardCallback(BaseCallback):
 
 # ---------- MAIN ---------- #
 if load_model:
+    model = DQN.load("dqn_city_model", env=env)
     model = DQN.load(MODEL_PATH, env=env)
     print("Modelo preentrenado cargado exitosamente.")
 else:
