@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-
 class City(gym.Env):
     def __init__(self, size=5):
         super().__init__()
@@ -20,7 +19,9 @@ class City(gym.Env):
         )
 
         self.observation_space = gym.spaces.Box(
-            low=0, high=max(self.BUILDINGS.values()), shape=(size, size), dtype=np.int32
+            low=np.array([0, 0] + [-1]*8, dtype=np.float32),
+            high=np.array([self._size - 1, self._size - 1] + [2]*8, dtype=np.float32),
+            dtype=np.float32
         )
 
         self.action_space = gym.spaces.Discrete(2)
@@ -87,7 +88,8 @@ class City(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self._city.fill(self.EMPTY)
+        self._city = np.full((self._size, self._size), self.EMPTY, dtype=np.int32)
+        self._houses_build = 0
         self._streets_build = 0
         street_x = random.randint(0, self._size - 1)
         street_y = random.randint(0, self._size - 1)
@@ -109,5 +111,8 @@ class City(gym.Env):
 
     def plot(self):
         plt.imshow(self._city, cmap='viridis', interpolation='nearest')
-        plt.colorbar()
+        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Street'),
+                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='House'),
+                            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='purple', markersize=10, label='Empty')],
+                    loc='upper left')
         plt.show()

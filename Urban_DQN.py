@@ -75,7 +75,7 @@ else:
     plt.title("Reward por episodio")
     plt.grid(True)
     plt.savefig(IMG_PATH)
-    plt.show()
+    #plt.show()
 
     print(f"Tiempo total de entrenamiento: {callback.total_time:.2f} segundos")
 
@@ -88,3 +88,19 @@ while not done:
     env.render()
 
 env.plot()
+
+
+# ---------- SIMULACIÓN POST-ENTRENAMIENTO ---------- #
+obs, _ = env.reset()
+done = False
+while not done:
+    action, _ = model.predict(obs, deterministic=True)
+    obs, reward, done, _, _ = env.step(action)
+    env.render()  # Esto muestra y pinta en consola cada paso (puedes comentar si es mucho)
+
+# 👇 Mostrar la ciudad final clara y completa
+print("\nCiudad final construida:")
+env.render()  # Esto imprimirá la matriz final
+
+print("\nMostrando ciudad final como gráfico de colores...")
+env.plot()    # Esto abre la ventana con la leyenda de colores
