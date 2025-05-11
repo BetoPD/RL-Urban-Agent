@@ -21,18 +21,17 @@ class City(gym.Env):
         self._agent_location = np.array([random.randint(0, self._size - 1), random.randint(0, self._size - 1)], dtype=np.int32)
 
         # Observations
-        # self.observation_space = gym.spaces.Dict({
-        #     "position": gym.spaces.Box(low=0, high=self._size-1, shape=(2,), dtype=np.int32),
-        #     "neighbors": gym.spaces.Box(low=-1, high=self.HOUSE, shape=(8,), dtype=np.int32)
-        # })
         self.observation_space = gym.spaces.Box(
             low=np.array([0, 0] + [-1]*8, dtype=np.float32),
             high=np.array([self._size - 1, self._size - 1] + [2]*8, dtype=np.float32),
             dtype=np.float32
         )
+        # self.observation_space = gym.spaces.Box(
+        #     low=np.array([-1]*8, dtype=np.float32),
+        #     high=np.array([2]*8, dtype=np.float32),
+        #     dtype=np.float32
+        # )
 
-
-        
         # Actions
         self.action_space = gym.spaces.Discrete(2)
 
@@ -76,37 +75,10 @@ class City(gym.Env):
                 neighbors_state.append(self._city[x, y])
             else:
                 neighbors_state.append(-1)
-        
-        x, y = self._agent_location
 
+        # return np.array(neighbors_state, dtype=np.float32)
         return np.array([x, y] + neighbors_state, dtype=np.float32)
     
-    def _get_neighbors(self, x, y):
-        directions = [(-1, 0), (1, 0), (0, 1), (0, -1)]
-        neighbors = [(x + dx, y + dy) for dx, dy in directions]
-        valid_neighbors = [pos for pos in neighbors if self._is_in_bounds(*pos)]
-        return valid_neighbors
-    
-        x, y = self._agent_location
-
-        visited = set()
-
-        stack = [(x, y)]
-
-        while len(stack) > 0:
-            current = stack.pop()
-            if current not in visited:
-                visited.add(current)
-                neighbors = self._get_neighbors(*current)
-                for neighbor in neighbors:
-                    # only visit streets
-                    if self._city[neighbor] != self.STREET:
-                        continue
-                    if neighbor not in visited:
-                        stack.append(neighbor)
-        
-        return len(visited) / self._streets_build
-
     def step(self, action):
         # Validate the action
         if action not in [0, 1]:
@@ -137,7 +109,7 @@ class City(gym.Env):
         reward = base_reward
         if done and not is_fully_filled:
             number_of_empty_cells = np.sum(self._city == self.EMPTY)
-            reward -= 10 * number_of_empty_cells
+            reward -= (10 * number_of_empty_cells)
 
         # Return the standard Gymnasium tuple: observation, reward, terminated, truncated, info
         return self._get_obs(), reward, done, False, {}
@@ -168,16 +140,29 @@ class City(gym.Env):
         # what color is wich building
         plt.colorbar()
         plt.draw()
-        plt.pause(0.001)
+        plt.pause(0.01)
 
         print(self._city)
 
+    def _street_connectiviy(self):
+        number_of_streets = np.sum(self._city == self.STREET)
+        return number_of_streets / self._streets_build
+
     def plot(self):
         plt.imshow(self._city, cmap='viridis', interpolation='nearest')
-        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10, label='Street'),
+        plt.legend(handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10, label='Street'),
                             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='House'),
                             plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='purple', markersize=10, label='Empty')],
                     loc='upper left')
+        
+        plt.title("City Layout")
+        # show connectivity
+        connectivity = self._street_connectiviy()
+        plt.text(0, -1, f"Street Connectivity: {connectivity:.2f}")
+        # How many houses and streets were built
+        plt.text(0, -2, f"Houses Built: {self._houses_build}")
+        plt.text(0, -3, f"Streets Built: {self._streets_build}")
+
         plt.show()
     
 

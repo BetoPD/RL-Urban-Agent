@@ -3,10 +3,10 @@ from stable_baselines3.common.env_checker import check_env
 from Urban_env import City
 
 # Bandera para decidir si cargar el modelo preentrenado o entrenar uno nuevo
-load_model = True  # Cambia a False para entrenar un modelo nuevo
+load_model = False  # Cambia a False para entrenar un modelo nuevo
 
 # Crear el entorno
-env = City(size=50)
+env = City(size=10)
 
 # Opcional: Verificar que el entorno cumple con la API de Gymnasium
 check_env(env, warn=True)
@@ -22,8 +22,8 @@ else:
         env,
         verbose=1,
         exploration_initial_eps=1.0,  # Comienza con exploración completa (100% aleatoria)
-        exploration_fraction=0.2,      # Durante el 20% de los timesteps se reducirá ε
-        exploration_final_eps=0.05     # ε final estabilizado en 5% de acciones aleatorias
+        exploration_fraction=0.20,      # Durante el 20% de los timesteps se reducirá ε
+        exploration_final_eps=0.05,     # ε final estabilizado en 5% de acciones aleatorias
     )
     # Entrenar el agente durante 100,000 timesteps
     model.learn(total_timesteps=100000)
@@ -39,7 +39,7 @@ while not done:
     # Predicción de acción (determinista para reproducibilidad)
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, _, _ = env.step(action)
-    env.render()  # Visualiza la cuadrícula
+    # env.render()  # Visualiza la cuadrícula
 
 # Visualizar la cuadrícula final con colores
 env.plot()
